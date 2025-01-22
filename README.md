@@ -2,7 +2,7 @@
 ![Docker](https://github.com/f1tenth/f1tenth_gym/actions/workflows/docker.yml/badge.svg)
 # The F1TENTH Gym environment
 
-This is the repository of the F1TENTH Gym environment.
+This is the repository of Black Team's hacked F1TENTH Gym environment (LOTS OF JANKY JANK).
 
 You can find the [documentation](https://f1tenth-gym.readthedocs.io/en/latest/) of the environment here.
 
