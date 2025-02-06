@@ -12,7 +12,7 @@ from pyglet.gl import GL_POINTS
 """
 Planner Helpers
 """
-@njit(fastmath=False, cache=True)
+# @njit(fastmath=False, cache=True)
 def nearest_point_on_trajectory(point, trajectory):
     """
     Return the nearest point along the given piecewise linear trajectory.
@@ -26,27 +26,41 @@ def nearest_point_on_trajectory(point, trajectory):
     trajectory: Nx2 matrix of (x,y) trajectory waypoints
         - these must be unique. If they are not unique, a divide by 0 error will destroy the world
     """
-    diffs = trajectory[1:,:] - trajectory[:-1,:]
-    l2s   = diffs[:,0]**2 + diffs[:,1]**2
+
+    diffs = trajectory[1:,:] - trajectory[:-1,:] # differences between each segment, gives the vector difference for each consecutive pair of waypoints
+    l2s   = diffs[:,0]**2 + diffs[:,1]**2 # squared lengths of each segment
+    
     # this is equivalent to the elementwise dot product
     # dots = np.sum((point - trajectory[:-1,:]) * diffs[:,:], axis=1)
     dots = np.empty((trajectory.shape[0]-1, ))
+
     for i in range(dots.shape[0]):
         dots[i] = np.dot((point - trajectory[i, :]), diffs[i, :])
+    
     t = dots / l2s
     t[t<0.0] = 0.0
     t[t>1.0] = 1.0
+
     # t = np.clip(dots / l2s, 0.0, 1.0)
     projections = trajectory[:-1,:] + (t*diffs.T).T
     # dists = np.linalg.norm(point - projections, axis=1)
     dists = np.empty((projections.shape[0],))
+
     for i in range(dists.shape[0]):
         temp = point - projections[i]
         dists[i] = np.sqrt(np.sum(temp*temp))
     min_dist_segment = np.argmin(dists)
+
+    """ 
+    Returns: 
+        nearest point (x,y) 
+        distance to nearest point
+        t value of nearest point(how far from the point you are between 0 and 1)
+        index of nearest segment
+    """
     return projections[min_dist_segment], dists[min_dist_segment], t[min_dist_segment], min_dist_segment
 
-@njit(fastmath=False, cache=True)
+# @njit(fastmath=False, cache=True)
 def first_point_on_trajectory_intersecting_circle(point, radius, trajectory, t=0.0, wrap=False):
     """
     starts at beginning of trajectory, and find the first point one radius away from the given point along the trajectory.
@@ -55,6 +69,8 @@ def first_point_on_trajectory_intersecting_circle(point, radius, trajectory, t=0
 
     http://codereview.stackexchange.com/questions/86421/line-segment-to-circle-collision-algorithm
     """
+
+    # All of this is just to get the lookahead point on the trajectory within a radius of the car
     start_i = int(t)
     start_t = t % 1.0
     first_t = None
@@ -130,7 +146,7 @@ def first_point_on_trajectory_intersecting_circle(point, radius, trajectory, t=0
 
     return first_p, first_i, first_t
 
-@njit(fastmath=False, cache=True)
+# @njit(fastmath=False, cache=True)
 def get_actuation(pose_theta, lookahead_point, position, lookahead_distance, wheelbase):
     """
     Returns actuation
@@ -243,13 +259,18 @@ def main():
     main entry point
     """
 
-    work = {'mass': 3.463388126201571, 'lf': 0.15597534362552312, 'tlad': 0.82461887897713965, 'vgain': 1.375}#0.90338203837889}
+    # mass of the car, distance from center of gravity and front axle, look ahead distance, velocity gain
+    work = {'mass': 3.463388126201571, 'lf': 0.05597534362552312, 'tlad': 0.72461887897713965, 'vgain': 1.375}
     
+    # Original Values:
+    # work = {'mass': 3.463388126201571, 'lf': 0.15597534362552312, 'tlad': 0.82461887897713965, 'vgain': 1.375}#0.90338203837889}
+
     with open('config_example_map.yaml') as file:
         conf_dict = yaml.load(file, Loader=yaml.FullLoader)
     conf = Namespace(**conf_dict)
 
-    planner = PurePursuitPlanner(conf, (0.17145+0.15875)) #FlippyPlanner(speed=0.2, flip_every=1, steer=10)
+    planner = PurePursuitPlanner(conf, (0.17145+0.15875)) 
+    # planner = FlippyPlanner(speed=0.2, flip_every=1, steer=10)
 
     def render_callback(env_renderer):
         # custom extra drawing function
@@ -262,10 +283,12 @@ def main():
         top, bottom, left, right = max(y), min(y), min(x), max(x)
         e.score_label.x = left
         e.score_label.y = top - 700
-        e.left = left - 800
-        e.right = right + 800
-        e.top = top + 800
-        e.bottom = bottom - 800
+
+        # Below are camera values to handle how much you can see on the screen at once
+        e.left = left - 400
+        e.right = right + 400
+        e.top = top + 400
+        e.bottom = bottom - 400
 
         planner.render_waypoints(env_renderer)
 
