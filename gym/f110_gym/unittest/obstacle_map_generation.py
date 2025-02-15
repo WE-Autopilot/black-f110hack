@@ -3,7 +3,7 @@
 # You will need the necessary dependencies to run this program
 # This includes Shapely, matplotlib, numpy, etc
 # To run the program, you need the following command
-# python .\random_trackgen.py --seed 123 --num_maps arg --num_obstacles arg
+# python .\obstacle_map_generation.py --seed 123 --num_maps arg --num_obstacles arg
 # Replace arg with positive integers, all maps and centerline data are found in their folders under unittest
 
 import cv2
