@@ -12,7 +12,7 @@ import math
 import numpy as np
 import shapely.geometry as shp
 import matplotlib.pyplot as plt
-from matplotlib.patches import Rectangle
+from matplotlib.patches import Rectangle, Polygon
 import yaml
 import argparse
 
@@ -198,24 +198,42 @@ def convert_track_with_waypoints(track, track_int, track_ext, iter, obstacles):
         print(f"Empty track boundaries for map {iter}. Skipping...")
         return
 
-    # Plot the track and obstacles
+ # Plot the track and obstacles
     fig, ax = plt.subplots()
     fig.set_size_inches(20, 20)
-    ax.plot(track_int[:, 0], track_int[:, 1], color='black', linewidth=1, label='Inner Boundary')  # Thinner lines
-    ax.plot(track_ext[:, 0], track_ext[:, 1], color='black', linewidth=1, label='Outer Boundary')  # Thinner lines
+    ax.set_aspect('equal')
 
-    # Add obstacles as pink squares
+    # Fill the background with black (this is so we see black as illegal and white (the track) being legal)
+    ax.set_facecolor("black")  
+
+    # Fill the area outside the track with black, leaving the track white
+    outer_boundary = np.vstack([track_ext, track_ext[0]])  # Ensure closed shape
+    inner_boundary = np.vstack([track_int, track_int[0]])  # Ensure closed shape
+
+    # This just fills the inside of the track with white, takes into consideration inner and outer boundaries and fills them accordingly
+    outer_polygon = Polygon(outer_boundary, facecolor='white', edgecolor='white', linewidth=1)
+    inner_polygon = Polygon(inner_boundary, facecolor='black', edgecolor='black', linewidth=1)
+    
+    ax.add_patch(outer_polygon)  # Add white track
+    ax.add_patch(inner_polygon)  # Carves out the inside of the track
+
+    # Plot the track boundaries in white
+    ax.plot(track_int[:, 0], track_int[:, 1], color='black', linewidth=1)  
+    ax.plot(track_ext[:, 0], track_ext[:, 1], color='black', linewidth=1)  
+
+    # Hide axes (we dont want those as we just want the track)
+    plt.axis('off')
+
+    # Add obstacles as black squares
     for x, y, width, height in obstacles:
         rect = Rectangle((x - width / 2, y - height / 2), width, height, 
                         facecolor='#000000',  # Changed color
-                        alpha=0.8,  # More opaque
+                        alpha=1.0,  # More opaque
                         linewidth=1.5)  # Thicker border
         ax.add_patch(rect)
 
     plt.tight_layout()
-    ax.set_aspect('equal')
-    plt.axis('off')
-    plt.savefig(f'maps/map{iter}_obstacles.png', dpi=80)
+    plt.savefig(f'maps/map{iter}_obstacles.png', dpi=80, facecolor="black")  
     plt.close()
 
     # Save the waypoints (centerline) as a CSV file with speeds
