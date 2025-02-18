@@ -24,7 +24,7 @@ def main(render_on=True):
     '''
 
     # Load config from YAML
-    with open('config.yaml') as file:
+    with open('assets/config.yaml') as file:
         conf_dict = yaml.safe_load(file)
     conf = Namespace(**conf_dict)
 

@@ -1,3 +1,4 @@
+import os
 import numpy as np
 from numba import njit
 
@@ -166,9 +167,17 @@ class PurePursuitPlanner:
         """
         Load waypoints from file.
         """
-        self.waypoints = np.loadtxt(conf.wpt_path,
+        waypoint_file = os.path.join(os.path.dirname(__file__), "assets", os.path.basename(conf.wpt_path))
+
+        if not os.path.exists(waypoint_file):
+            raise FileNotFoundError(f"Waypoint file not found: {waypoint_file}")
+
+        self.waypoints = np.loadtxt(waypoint_file,
                                     delimiter=conf.wpt_delim,
                                     skiprows=conf.wpt_rowskip)
+
+
+    # TODO: Make a utility function that converts between the path vector from SAL and  global waypoints
 
     def set_path(self, wpts_vector):
         """
