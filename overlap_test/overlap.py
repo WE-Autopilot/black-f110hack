@@ -11,13 +11,26 @@ path = np.array([
 ])
 position = np.array([452, 224])
 angle = 0  # No rotation needed
+scale = 1  # Scaling factor for path
 car_radius = 3  # Determines path thickness
 
-# Convert relative movements to absolute positions (tip-to-tail accumulation)
-absolute_path = [position]
-for vector in path:
-    absolute_path.append(absolute_path[-1] + vector)
-absolute_path = np.array(absolute_path)
+def get_absolute_path(position, path, angle, scale):
+    """
+    Converts relative movements into absolute positions with scaling and rotation.
+    """
+    path = path * scale  # Apply scaling
+    absolute_path = np.vstack([np.zeros((1, 2)), np.cumsum(path, axis=0)]) + position
+    
+    # Create rotation matrix
+    rotation_matrix = np.array([[np.cos(angle), -np.sin(angle)],
+                                 [np.sin(angle),  np.cos(angle)]])
+    
+    # Apply rotation to path
+    rotated_path = (rotation_matrix @ absolute_path.T).T
+    return rotated_path
+
+# Compute absolute path
+absolute_path = get_absolute_path(position, path, angle, scale)
 
 # Load the track image
 image_path = "exmap.png"
@@ -79,7 +92,10 @@ plt.show()
 assert masked_map.min() >= 0 and masked_map.max() <= 1, "Masked map is not normalized!"
 
 # Sum all pixel values along the single channel (since it's a grayscale image)
-total_out_of_bounds_distance = np.sum(masked_map)
+def get_overlap(masked_map):
+    return np.sum(masked_map)
+
+total_out_of_bounds_distance = get_overlap(masked_map)
 
 # Display the result
 print(f"Total Out-of-Bounds Distance (Summed Pixel Values): {total_out_of_bounds_distance}")
