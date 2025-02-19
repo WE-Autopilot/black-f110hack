@@ -3,8 +3,8 @@
 # You will need the necessary dependencies to run this program
 # This includes Shapely, matplotlib, numpy, etc
 # To run the program, you need the following command
-# python .\obstacle_map_generation.py --seed 123 --num_maps arg --num_obstacles arg
-# Replace arg with positive integers, all maps and centerline data are found in their folders under unittest
+# python .\random_trackgen.py --seed 123 --num_maps arg --num_obstacles arg
+# Replace arg with positive integers, all maps and centerline data are found in their files under unittest
 
 import cv2
 import os
@@ -34,14 +34,14 @@ if not os.path.exists('centerline'):
  # For testing data, we can adjust the sizes of obstacles to be whatever we need   
 
 NUM_MAPS = args.num_maps
-WIDTH = 1.0  # Track width (1.0 meter, as per F1TENTH specifications)
-CAR_LENGTH = 0.3  # Car length (0.3 meters, as per F1TENTH specifications)
-CAR_WIDTH = 0.2   # Car width (0.2 meters, as per F1TENTH specifications)
-OBSTACLE_WIDTH_MIN = 0.2
-OBSTACLE_WIDTH_MAX = 0.5
-OBSTACLE_HEIGHT_MIN = 0.2
-OBSTACLE_HEIGHT_MAX = 0.8
-CLEARANCE = CAR_WIDTH + 0.1  # Minimum clearance required for the car to navigate around obstacles (10 cm buffer)
+WIDTH = 10.0  # Track width (1.0 meter, as per F1TENTH specifications)
+CAR_LENGTH = 3.0  # Car length (0.3 meters, as per F1TENTH specifications)
+CAR_WIDTH = 2.0   # Car width (0.2 meters, as per F1TENTH specifications)
+OBSTACLE_WIDTH_MIN = 2.5
+OBSTACLE_WIDTH_MAX = 8.0
+OBSTACLE_HEIGHT_MIN = 6.0
+OBSTACLE_HEIGHT_MAX = 8.0
+CLEARANCE = CAR_WIDTH + 1.0  # Minimum clearance required for the car to navigate around obstacles (10 cm buffer)
 
 
 def create_track():
@@ -50,7 +50,7 @@ def create_track():
     """
     CHECKPOINTS = 16
     SCALE = 6.0
-    TRACK_RAD = 90 / SCALE
+    TRACK_RAD = 900 / SCALE
     TRACK_DETAIL_STEP = 21 / SCALE
     TRACK_TURN_RATE = 0.31
 
