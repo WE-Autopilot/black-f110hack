@@ -14,23 +14,24 @@ angle = 0  # No rotation needed
 scale = 1  # Scaling factor for path
 car_radius = 3  # Determines path thickness
 
-def get_absolute_path(position, path, angle, scale):
+def get_absolute_path(path, position, angle, scale):
     """
     Converts relative movements into absolute positions with scaling and rotation.
     """
-    path = path * scale  # Apply scaling
+    # reshape to be n x 2
+    path = path.reshape(-1, 2)
+
+    # apply transformations
+    transformation = np.array([[np.cos(angle), -np.sin(angle)], [np.sin(angle),  np.cos(angle)]]) * scale
+    path = (transformation @ path.T).T
+
+    # assemble absolute path from position
     absolute_path = np.vstack([np.zeros((1, 2)), np.cumsum(path, axis=0)]) + position
     
-    # Create rotation matrix
-    rotation_matrix = np.array([[np.cos(angle), -np.sin(angle)],
-                                 [np.sin(angle),  np.cos(angle)]])
-    
-    # Apply rotation to path
-    rotated_path = (rotation_matrix @ absolute_path.T).T
-    return rotated_path
+    return absolute_path
 
 # Compute absolute path
-absolute_path = get_absolute_path(position, path, angle, scale)
+absolute_path = get_absolute_path(path, position, angle, scale)
 
 # Load the track image
 image_path = "exmap.png"
