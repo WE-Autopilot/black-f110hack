@@ -73,3 +73,13 @@ plt.imshow(masked_map, cmap="gray", origin="upper")
 plt.title("Masked Map (Track Inverted & Path Applied)")
 plt.axis("off")
 plt.show()
+
+# -------- Step 5: Sum the Normalized Pixel Values --------
+# Ensure the masked map is correctly normalized (values between 0 and 1)
+assert masked_map.min() >= 0 and masked_map.max() <= 1, "Masked map is not normalized!"
+
+# Sum all pixel values along the single channel (since it's a grayscale image)
+total_out_of_bounds_distance = np.sum(masked_map)
+
+# Display the result
+print(f"Total Out-of-Bounds Distance (Summed Pixel Values): {total_out_of_bounds_distance}")
