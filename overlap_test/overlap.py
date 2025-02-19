@@ -19,7 +19,7 @@ for vector in path:
 absolute_path = np.array(absolute_path)
 
 # Load the track image (assuming last uploaded file is the map)
-image_path = "/mnt/data/image.png"
+image_path = "exmap.png"
 track_image = Image.open(image_path).convert("L")
 track_array = np.array(track_image)
 
