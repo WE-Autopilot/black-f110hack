@@ -1,3 +1,4 @@
+#ROSA'S CODE
 # PLEASE NOTE THE FOLLOWING:
 # You will need the necessary dependencies to run this program
 # This includes Shapely, matplotlib, numpy, etc
@@ -222,7 +223,15 @@ def convert_track_with_waypoints(track, track_int, track_ext, iter, obstacles):
     ax.plot(track_ext[:, 0], track_ext[:, 1], color='black', linewidth=1)  
 
     # Hide axes (we dont want those as we just want the track)
-    plt.axis('off')
+    plt.axis('on')
+    # Change the axes color to white
+    plt.gca().spines['bottom'].set_color('white')
+    plt.gca().spines['top'].set_color('white')
+    plt.gca().spines['left'].set_color('white')
+    plt.gca().spines['right'].set_color('white')
+
+    # Change the tick color to white (if needed)
+    plt.tick_params(colors='white')
 
     # Add obstacles as black squares
     for x, y, width, height in obstacles:
@@ -238,6 +247,7 @@ def convert_track_with_waypoints(track, track_int, track_ext, iter, obstacles):
     plt.savefig(f'maps/map{iter}.png', dpi=80, facecolor="black")
     
     # Save a debug version with waypoints
+   
     plt.plot(track[:, 0], track[:, 1], 'ro', markersize=2)  # Plot waypoints
     plt.savefig(f'maps/map{iter}_debug.png', dpi=80, facecolor="black")
     plt.close()
