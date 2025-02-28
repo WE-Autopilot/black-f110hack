@@ -96,7 +96,7 @@ try:
         map_config = yaml.safe_load(file)
     origin_x = map_config.get('origin', [0, 0, 0])[0]
     origin_y = map_config.get('origin', [0, 0, 0])[1]
-    resolution = map_config.get('resolution', 0.1) * 2 # meters per pixel
+    resolution = map_config.get('resolution', 0.1) # meters per pixel
 except Exception as e:
     print(f"Error loading map config: {e}")
     # Default values
@@ -151,8 +151,8 @@ except Exception as e:
 # Function to convert world coordinates to pixel coordinates
 def world_to_pixel(x, y, origin_x, origin_y, resolution, height):
     # Convert from world coordinates to pixel coordinates
-    pixel_x = int((x - origin_x) / resolution)
-    pixel_y = int(height - (y - origin_y) / resolution)  # Flip y since image origin is at top-left
+    pixel_x = int((x - origin_x) / resolution / 2 + height / 2)
+    pixel_y = int(height / 2 - (y - origin_y) / resolution / 2)  # Flip y since image origin is at top-left
     return pixel_x, pixel_y
 
 # Function to extract a rotated patch around a waypoint
