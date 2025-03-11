@@ -4,6 +4,7 @@ import yaml
 import gym
 import numpy as np
 from argparse import Namespace
+import matplotlib.pyplot as plt  # Import matplotlib for plotting
 
 from numba import njit
 
@@ -12,65 +13,32 @@ from pyglet.gl import GL_POINTS
 """
 Planner Helpers
 """
-# @njit(fastmath=False, cache=True)
+@njit(fastmath=False, cache=True)
 def nearest_point_on_trajectory(point, trajectory):
     """
     Return the nearest point along the given piecewise linear trajectory.
-
-    Same as nearest_point_on_line_segment, but vectorized. This method is quite fast, time constraints should
-    not be an issue so long as trajectories are not insanely long.
-
-        Order of magnitude: trajectory length: 1000 --> 0.0002 second computation (5000fps)
-
-    point: size 2 numpy array
-    trajectory: Nx2 matrix of (x,y) trajectory waypoints
-        - these must be unique. If they are not unique, a divide by 0 error will destroy the world
     """
-
-    diffs = trajectory[1:,:] - trajectory[:-1,:] # differences between each segment, gives the vector difference for each consecutive pair of waypoints
-    l2s   = diffs[:,0]**2 + diffs[:,1]**2 # squared lengths of each segment
-    
-    # this is equivalent to the elementwise dot product
-    # dots = np.sum((point - trajectory[:-1,:]) * diffs[:,:], axis=1)
+    diffs = trajectory[1:,:] - trajectory[:-1,:]
+    l2s   = diffs[:,0]**2 + diffs[:,1]**2
     dots = np.empty((trajectory.shape[0]-1, ))
-
     for i in range(dots.shape[0]):
         dots[i] = np.dot((point - trajectory[i, :]), diffs[i, :])
-    
     t = dots / l2s
     t[t<0.0] = 0.0
     t[t>1.0] = 1.0
-
-    # t = np.clip(dots / l2s, 0.0, 1.0)
     projections = trajectory[:-1,:] + (t*diffs.T).T
-    # dists = np.linalg.norm(point - projections, axis=1)
     dists = np.empty((projections.shape[0],))
-
     for i in range(dists.shape[0]):
         temp = point - projections[i]
         dists[i] = np.sqrt(np.sum(temp*temp))
     min_dist_segment = np.argmin(dists)
-
-    """ 
-    Returns: 
-        nearest point (x,y) 
-        distance to nearest point
-        t value of nearest point(how far from the point you are between 0 and 1)
-        index of nearest segment
-    """
     return projections[min_dist_segment], dists[min_dist_segment], t[min_dist_segment], min_dist_segment
 
-# @njit(fastmath=False, cache=True)
+@njit(fastmath=False, cache=True)
 def first_point_on_trajectory_intersecting_circle(point, radius, trajectory, t=0.0, wrap=False):
     """
-    starts at beginning of trajectory, and find the first point one radius away from the given point along the trajectory.
-
-    Assumes that the first segment passes within a single radius of the point
-
-    http://codereview.stackexchange.com/questions/86421/line-segment-to-circle-collision-algorithm
+    Find the first point one radius away from the given point along the trajectory.
     """
-
-    # All of this is just to get the lookahead point on the trajectory within a radius of the car
     start_i = int(t)
     start_t = t % 1.0
     first_t = None
@@ -89,9 +57,6 @@ def first_point_on_trajectory_intersecting_circle(point, radius, trajectory, t=0
 
         if discriminant < 0:
             continue
-        #   print "NO INTERSECTION"
-        # else:
-        # if discriminant >= 0.0:
         discriminant = np.sqrt(discriminant)
         t1 = (-b - discriminant) / (2.0*a)
         t2 = (-b + discriminant) / (2.0*a)
@@ -116,7 +81,6 @@ def first_point_on_trajectory_intersecting_circle(point, radius, trajectory, t=0
             first_i = i
             first_p = start + t2 * V
             break
-    # wrap around to the beginning of the trajectory if no intersection is found1
     if wrap and first_p is None:
         for i in range(-1, start_i):
             start = trajectory[i % trajectory.shape[0],:]
@@ -146,7 +110,7 @@ def first_point_on_trajectory_intersecting_circle(point, radius, trajectory, t=0
 
     return first_p, first_i, first_t
 
-# @njit(fastmath=False, cache=True)
+@njit(fastmath=False, cache=True)
 def get_actuation(pose_theta, lookahead_point, position, lookahead_distance, wheelbase):
     """
     Returns actuation
@@ -181,11 +145,7 @@ class PurePursuitPlanner:
         """
         update waypoints being drawn by EnvRenderer
         """
-
-        #points = self.waypoints
-
         points = np.vstack((self.waypoints[:, self.conf.wpt_xind], self.waypoints[:, self.conf.wpt_yind])).T
-        
         scaled_points = 50.*points
 
         for i in range(points.shape[0]):
@@ -207,9 +167,7 @@ class PurePursuitPlanner:
             if i2 == None:
                 return None
             current_waypoint = np.empty((3, ))
-            # x, y
             current_waypoint[0:2] = wpts[i2, :]
-            # speed
             current_waypoint[2] = waypoints[i, self.conf.wpt_vind]
             return current_waypoint
         elif nearest_dist < self.max_reacquire:
@@ -233,48 +191,20 @@ class PurePursuitPlanner:
         return speed, steering_angle
 
 
-class FlippyPlanner:
-    """
-    Planner designed to exploit integration methods and dynamics.
-    For testing only. To observe this error, use single track dynamics for all velocities >0.1
-    """
-    def __init__(self, speed=1, flip_every=1, steer=2):
-        self.speed = speed
-        self.flip_every = flip_every
-        self.counter = 0
-        self.steer = steer
-    
-    def render_waypoints(self, *args, **kwargs):
-        pass
-
-    def plan(self, *args, **kwargs):
-        if self.counter%self.flip_every == 0:
-            self.counter = 0
-            self.steer *= -1
-        return self.speed, self.steer
-
-
 def main():
     """
     main entry point
     """
-
-    # mass of the car, distance from center of gravity and front axle, look ahead distance, velocity gain
-    work = {'mass': 3.463388126201571, 'lf': 0.05597534362552312, 'tlad': 0.72461887897713965, 'vgain': 1.375}
+    work = {'mass': 3.463388126201571, 'lf': 0.15597534362552312, 'tlad': 0.82461887897713965, 'vgain': 1.375}
     
-    # Original Values:
-    # work = {'mass': 3.463388126201571, 'lf': 0.15597534362552312, 'tlad': 0.82461887897713965, 'vgain': 1.375}#0.90338203837889}
-
     with open('config_example_map.yaml') as file:
         conf_dict = yaml.load(file, Loader=yaml.FullLoader)
     conf = Namespace(**conf_dict)
 
-    planner = PurePursuitPlanner(conf, (0.17145+0.15875)) 
-    # planner = FlippyPlanner(speed=0.2, flip_every=1, steer=10)
+    planner = PurePursuitPlanner(conf, (0.17145+0.15875))
 
     def render_callback(env_renderer):
         # custom extra drawing function
-
         e = env_renderer
 
         # update camera to follow car
@@ -283,29 +213,58 @@ def main():
         top, bottom, left, right = max(y), min(y), min(x), max(x)
         e.score_label.x = left
         e.score_label.y = top - 700
-
-        # Below are camera values to handle how much you can see on the screen at once
-        e.left = left - 400
-        e.right = right + 400
-        e.top = top + 400
-        e.bottom = bottom - 400
+        e.left = left - 800
+        e.right = right + 800
+        e.top = top + 800
+        e.bottom = bottom - 800
 
         planner.render_waypoints(env_renderer)
 
     env = gym.make('f110_gym:f110-v0', map=conf.map_path, map_ext=conf.map_ext, num_agents=1, timestep=0.01, integrator=Integrator.RK4)
     env.add_render_callback(render_callback)
     
-    obs, step_reward, done, _ = env.reset(np.array([[conf.sx, conf.sy, conf.stheta]]))
+    obs, step_reward, done, info = env.reset(np.array([[conf.sx, conf.sy, conf.stheta]]))
     env.render()
 
     laptime = 0.0
     start = time.time()
 
+    step_count = 0  # Counter to keep track of steps
+
+    # Initialize the plot
+    plt.ion()
+    fig, ax = plt.subplots()
+    ax.set_xlim(-10, 10)
+    ax.set_ylim(-10, 10)
+    scatter = ax.scatter([], [], s=1)
+
     while not done:
         speed, steer = planner.plan(obs['poses_x'][0], obs['poses_y'][0], obs['poses_theta'][0], work['tlad'], work['vgain'])
         obs, step_reward, done, info = env.step(np.array([[steer, speed]]))
         laptime += step_reward
-        env.render(mode='human_fast')
+        env.render(mode='human')
+
+        # Extract LiDAR data and plot every 100 steps
+        if step_count % 100 == 0:
+            lidar_scan = obs['scans'][0]  # Extract LiDAR scan data
+            angles = np.linspace(-2.35, 2.35, len(lidar_scan))  # Assuming LiDAR spans 270 degrees (4.7 radians)
+
+            # Convert LiDAR scan to Cartesian coordinates
+            x = lidar_scan * np.cos(angles + obs['poses_theta'][0])
+            y = lidar_scan * np.sin(angles + obs['poses_theta'][0])
+
+            # # Update the scatter plot
+            # scatter.set_offsets(np.c_[x, y])
+            # ax.set_xlim(-10, 10)
+            # ax.set_ylim(-10, 10)
+            # plt.draw()
+            # plt.pause(0.01)
+            scatter.set_offsets(np.c_[x, y])  # Update scatter plot with new LiDAR data
+            plt.scatter(0, 0, marker='x', color='red', s=100, label='Car')  # Add car position at (0,0)
+            plt.draw()
+            plt.pause(0.01)
+
+        step_count += 1
         
     print('Sim elapsed time:', laptime, 'Real elapsed time:', time.time()-start)
 
