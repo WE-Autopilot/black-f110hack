@@ -272,7 +272,7 @@ def main():
     env = gym.make('f110_gym:f110-v0', map=conf.map_path, map_ext=conf.map_ext, num_agents=1, timestep=0.01, integrator=Integrator.RK4)
     env.add_render_callback(render_callback)
     
-    obs, step_reward, done, info = env.reset(np.array([[conf.sx, conf.sy, conf.stheta]]))
+    obs, step_reward, done, _ = env.reset(np.array([[conf.sx, conf.sy, conf.stheta]]))
     env.render()
 
     laptime = 0.0
@@ -282,7 +282,7 @@ def main():
         speed, steer = planner.plan(obs['poses_x'][0], obs['poses_y'][0], obs['poses_theta'][0], work['tlad'], work['vgain'])
         obs, step_reward, done, info = env.step(np.array([[steer, speed]]))
         laptime += step_reward
-        env.render(mode='human')
+        env.render(mode='human_fast')
         
     print('Sim elapsed time:', laptime, 'Real elapsed time:', time.time()-start)
 
